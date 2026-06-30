@@ -2,6 +2,7 @@ const { Router } = require("express");
 const crypto = require("crypto");
 const { pool } = require("../db");
 const auth = require("../middleware/auth");
+const asyncHandler = require("../middleware/asyncHandler");
 
 const router = Router();
 
@@ -9,7 +10,7 @@ function generateCode() {
   return crypto.randomBytes(4).toString("hex");
 }
 
-router.get("/", auth, async (req, res) => {
+router.get("/", auth, asyncHandler(async (req, res) => {
   const result = await pool.query(
     `SELECT u.* FROM universes u
      JOIN universe_members um ON u.id = um.universe_id
@@ -17,9 +18,9 @@ router.get("/", auth, async (req, res) => {
     [req.user.id]
   );
   res.json(result.rows);
-});
+}));
 
-router.post("/", auth, async (req, res) => {
+router.post("/", auth, asyncHandler(async (req, res) => {
   const { name } = req.body;
   if (!name) {
     return res.status(400).json({ error: "Universe name required" });
@@ -47,9 +48,9 @@ router.post("/", auth, async (req, res) => {
   await pool.query("INSERT INTO rooms (universe_id) VALUES ($1)", [universe.id]);
 
   res.json(universe);
-});
+}));
 
-router.post("/join/:code", auth, async (req, res) => {
+router.post("/join/:code", auth, asyncHandler(async (req, res) => {
   const result = await pool.query("SELECT * FROM universes WHERE invite_code = $1", [req.params.code]);
   const universe = result.rows[0];
 
@@ -79,9 +80,9 @@ router.post("/join/:code", auth, async (req, res) => {
   }
 
   res.json(universe);
-});
+}));
 
-router.get("/:id", auth, async (req, res) => {
+router.get("/:id", auth, asyncHandler(async (req, res) => {
   const member = await pool.query(
     "SELECT * FROM universe_members WHERE universe_id = $1 AND user_id = $2",
     [req.params.id, req.user.id]
@@ -111,6 +112,6 @@ router.get("/:id", auth, async (req, res) => {
   );
 
   res.json({ ...universe, members: members.rows, starCount: starCount.rows[0].count });
-});
+}));
 
 module.exports = router;

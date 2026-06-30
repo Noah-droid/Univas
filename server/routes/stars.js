@@ -1,10 +1,11 @@
 const { Router } = require("express");
 const { pool } = require("../db");
 const auth = require("../middleware/auth");
+const asyncHandler = require("../middleware/asyncHandler");
 
 const router = Router();
 
-router.get("/:universeId", auth, async (req, res) => {
+router.get("/:universeId", auth, asyncHandler(async (req, res) => {
   const member = await pool.query(
     "SELECT * FROM universe_members WHERE universe_id = $1 AND user_id = $2",
     [req.params.universeId, req.user.id]
@@ -20,9 +21,9 @@ router.get("/:universeId", auth, async (req, res) => {
   );
 
   res.json(result.rows);
-});
+}));
 
-router.post("/:universeId", auth, async (req, res) => {
+router.post("/:universeId", auth, asyncHandler(async (req, res) => {
   const member = await pool.query(
     "SELECT * FROM universe_members WHERE universe_id = $1 AND user_id = $2",
     [req.params.universeId, req.user.id]
@@ -72,9 +73,9 @@ router.post("/:universeId", auth, async (req, res) => {
   }
 
   res.json(star);
-});
+}));
 
-router.put("/:universeId/:starId", auth, async (req, res) => {
+router.put("/:universeId/:starId", auth, asyncHandler(async (req, res) => {
   const member = await pool.query(
     "SELECT * FROM universe_members WHERE universe_id = $1 AND user_id = $2",
     [req.params.universeId, req.user.id]
@@ -140,9 +141,9 @@ router.put("/:universeId/:starId", auth, async (req, res) => {
   }
 
   res.json(star);
-});
+}));
 
-router.delete("/:universeId/:starId", auth, async (req, res) => {
+router.delete("/:universeId/:starId", auth, asyncHandler(async (req, res) => {
   const member = await pool.query(
     "SELECT * FROM universe_members WHERE universe_id = $1 AND user_id = $2",
     [req.params.universeId, req.user.id]
@@ -171,6 +172,6 @@ router.delete("/:universeId/:starId", auth, async (req, res) => {
   }
 
   res.json({ ok: true });
-});
+}));
 
 module.exports = router;

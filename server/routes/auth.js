@@ -2,10 +2,11 @@ const { Router } = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { pool } = require("../db");
+const asyncHandler = require("../middleware/asyncHandler");
 
 const router = Router();
 
-router.post("/register", async (req, res) => {
+router.post("/register", asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -31,9 +32,9 @@ router.post("/register", async (req, res) => {
   const token = jwt.sign({ id, username }, process.env.JWT_SECRET, { expiresIn: "30d" });
 
   res.json({ token, user: { id, username } });
-});
+}));
 
-router.post("/login", async (req, res) => {
+router.post("/login", asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
@@ -52,6 +53,6 @@ router.post("/login", async (req, res) => {
   });
 
   res.json({ token, user: { id: user.id, username: user.username } });
-});
+}));
 
 module.exports = router;

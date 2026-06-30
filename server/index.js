@@ -25,6 +25,11 @@ app.use("/api/universes", universeRoutes);
 app.use("/api/stars", starRoutes);
 app.use("/api/rooms", roomRoutes);
 
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Internal server error" });
+});
+
 const distPath = path.join(__dirname, "..", "app", "dist");
 app.use(express.static(distPath));
 app.get("/{*splat}", (req, res) => {

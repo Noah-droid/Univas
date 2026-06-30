@@ -1,10 +1,11 @@
 const { Router } = require("express");
 const { pool } = require("../db");
 const auth = require("../middleware/auth");
+const asyncHandler = require("../middleware/asyncHandler");
 
 const router = Router();
 
-router.get("/:universeId", auth, async (req, res) => {
+router.get("/:universeId", auth, asyncHandler(async (req, res) => {
   const member = await pool.query(
     "SELECT * FROM universe_members WHERE universe_id = $1 AND user_id = $2",
     [req.params.universeId, req.user.id]
@@ -26,9 +27,9 @@ router.get("/:universeId", auth, async (req, res) => {
     ...room,
     objects: JSON.parse(room.objects || "[]"),
   });
-});
+}));
 
-router.put("/:universeId", auth, async (req, res) => {
+router.put("/:universeId", auth, asyncHandler(async (req, res) => {
   const member = await pool.query(
     "SELECT * FROM universe_members WHERE universe_id = $1 AND user_id = $2",
     [req.params.universeId, req.user.id]
@@ -73,6 +74,6 @@ router.put("/:universeId", auth, async (req, res) => {
     ...room,
     objects: JSON.parse(room.objects || "[]"),
   });
-});
+}));
 
 module.exports = router;
