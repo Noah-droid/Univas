@@ -406,6 +406,13 @@
   gap: 8px;
 }
 
+/* Mobile-only elements: hidden on desktop */
+.room-bottom-tabs,
+.room-sheet,
+.room-sheet-overlay {
+  display: none;
+}
+
 /* ============================================
    MOBILE: Canva-style bottom sheet layout
    ============================================ */
@@ -666,6 +673,7 @@
 
   /* Overlay behind sheet */
   .room-sheet-overlay {
+    display: block;
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.4);
