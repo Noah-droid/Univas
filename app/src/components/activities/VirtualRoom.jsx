@@ -1,6 +1,7 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useActivityWS } from "../../hooks/useActivityWS";
 import { api } from "../../api";
+import Room3D from "./Room3D";
 import "./VirtualRoom.css";
 
 const WALL_COLORS = [
@@ -51,17 +52,14 @@ export default function VirtualRoom({ universeId, onComplete, onBack }) {
   const [placed, setPlaced] = useState([]);
   const [selectedObj, setSelectedObj] = useState(null);
   const [dragging, setDragging] = useState(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [filter, setFilter] = useState("all");
   const [wallColor, setWallColor] = useState(WALL_COLORS[0].color);
   const [floorColor, setFloorColor] = useState(FLOOR_COLORS[0].color);
-  const [showColorPicker, setShowColorPicker] = useState(null);
   const [noteInput, setNoteInput] = useState("");
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [pendingNotePos, setPendingNotePos] = useState(null);
   const [activeTab, setActiveTab] = useState("objects");
   const [sheetOpen, setSheetOpen] = useState(false);
-  const roomRef = useRef(null);
 
   const { send } = useActivityWS(universeId, (msg) => {
     if (msg.type === "ROOM_PLACE") {
@@ -70,8 +68,10 @@ export default function VirtualRoom({ universeId, onComplete, onBack }) {
         return [...prev, msg.item];
       });
     } else if (msg.type === "ROOM_MOVE") {
+      const update = { x: msg.x, y: msg.y };
+      if (msg.z !== undefined) update.z = msg.z;
       setPlaced((prev) =>
-        prev.map((p) => (p.uid === msg.uid ? { ...p, x: msg.x, y: msg.y } : p))
+        prev.map((p) => (p.uid === msg.uid ? { ...p, ...update } : p))
       );
     } else if (msg.type === "ROOM_REMOVE") {
       setPlaced((prev) => prev.filter((p) => p.uid !== msg.uid));
@@ -104,23 +104,6 @@ export default function VirtualRoom({ universeId, onComplete, onBack }) {
     setActiveTab("objects");
   };
 
-  const handleRoomClick = (e) => {
-    if (!selectedObj) return;
-    const rect = roomRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-
-    if (selectedObj.id === "note") {
-      setPendingNotePos({ x, y });
-      setShowNoteInput(true);
-      return;
-    }
-
-    const item = { ...selectedObj, uid: Date.now(), x, y, text: "" };
-    setPlaced((prev) => [...prev, item]);
-    send({ type: "ROOM_PLACE", item });
-  };
-
   const confirmNote = () => {
     if (!pendingNotePos) return;
     const item = {
@@ -135,54 +118,6 @@ export default function VirtualRoom({ universeId, onComplete, onBack }) {
     setNoteInput("");
     setShowNoteInput(false);
     setPendingNotePos(null);
-  };
-
-  const handlePointerDown = (e, item) => {
-    e.stopPropagation();
-    const rect = roomRef.current.getBoundingClientRect();
-    const itemX = (item.x / 100) * rect.width;
-    const itemY = (item.y / 100) * rect.height;
-    setDragOffset({
-      x: e.clientX - rect.left - itemX,
-      y: e.clientY - rect.top - itemY,
-    });
-    setDragging(item.uid);
-  };
-
-  const handlePointerMove = useCallback(
-    (e) => {
-      if (!dragging || !roomRef.current) return;
-      const rect = roomRef.current.getBoundingClientRect();
-      const x = ((e.clientX - rect.left - dragOffset.x) / rect.width) * 100;
-      const y = ((e.clientY - rect.top - dragOffset.y) / rect.height) * 100;
-      const clamped = { x: Math.max(2, Math.min(95, x)), y: Math.max(2, Math.min(90, y)) };
-
-      setPlaced((prev) =>
-        prev.map((p) => (p.uid === dragging ? { ...p, ...clamped } : p))
-      );
-      send({ type: "ROOM_MOVE", uid: dragging, ...clamped });
-    },
-    [dragging, dragOffset, send]
-  );
-
-  const handlePointerUp = useCallback(() => {
-    setDragging(null);
-  }, []);
-
-  useEffect(() => {
-    if (dragging) {
-      window.addEventListener("pointermove", handlePointerMove);
-      window.addEventListener("pointerup", handlePointerUp);
-      return () => {
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", handlePointerUp);
-      };
-    }
-  }, [dragging, handlePointerMove, handlePointerUp]);
-
-  const removeItem = (uid) => {
-    setPlaced((prev) => prev.filter((p) => p.uid !== uid));
-    send({ type: "ROOM_REMOVE", uid });
   };
 
   const changeWallColor = (color) => {
@@ -322,77 +257,34 @@ export default function VirtualRoom({ universeId, onComplete, onBack }) {
           )}
         </div>
 
-        <div
-          className={`room-canvas ${selectedObj ? "placing" : ""}`}
-          ref={roomRef}
-          onClick={handleRoomClick}
-        >
-          <div className="room-3d">
-            <div className="wall-back" style={{ background: wallColor }} />
-            <div className="wall-left" style={{ background: wallColor, filter: "brightness(0.85)" }} />
-            <div className="wall-right" style={{ background: wallColor, filter: "brightness(0.9)" }} />
-            <div className="wall-top" style={{ background: wallColor, filter: "brightness(1.1)" }} />
-            <div className="floor-surface" style={{ background: floorColor }} />
-            <div className="floor-grid" />
-
-            {placed
-              .filter((item) => item.category !== "floor")
-              .map((item) => (
-                <div
-                  key={item.uid}
-                  className={`room-item wall-item ${dragging === item.uid ? "dragging" : ""}`}
-                  style={{
-                    left: `${item.x}%`,
-                    top: `${Math.min(item.y, 55)}%`,
-                  }}
-                  onPointerDown={(e) => handlePointerDown(e, item)}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    removeItem(item.uid);
-                  }}
-                >
-                  <span
-                    className="room-item-icon"
-                    style={{ fontSize: item.size || 36 }}
-                  >
-                    {item.icon}
-                  </span>
-                  {item.text && <span className="room-item-text">{item.text}</span>}
-                </div>
-              ))}
-
-            {placed
-              .filter((item) => item.category === "floor")
-              .map((item) => (
-                <div
-                  key={item.uid}
-                  className={`room-item floor-item ${dragging === item.uid ? "dragging" : ""}`}
-                  style={{
-                    left: `${item.x}%`,
-                    top: `${Math.max(item.y, 55)}%`,
-                  }}
-                  onPointerDown={(e) => handlePointerDown(e, item)}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    removeItem(item.uid);
-                  }}
-                >
-                  <span
-                    className="room-item-icon"
-                    style={{ fontSize: item.size || 40 }}
-                  >
-                    {item.icon}
-                  </span>
-                </div>
-              ))}
-
-            {placed.length === 0 && !sheetOpen && (
-              <div className="room-empty">
-                Pick an object and tap to place it
-              </div>
-            )}
-          </div>
-        </div>
+        <Room3D
+          wallColor={wallColor}
+          floorColor={floorColor}
+          placed={placed}
+          selectedObj={selectedObj}
+          onPlace={(item) => {
+            if (item.id === "note") {
+              setPendingNotePos({ x: item.x, y: item.y });
+              setShowNoteInput(true);
+              return;
+            }
+            setPlaced((prev) => [...prev, item]);
+            send({ type: "ROOM_PLACE", item });
+          }}
+          onRemove={(uid) => {
+            setPlaced((prev) => prev.filter((p) => p.uid !== uid));
+            send({ type: "ROOM_REMOVE", uid });
+          }}
+          onMove={(uid, x, y, z) => {
+            setPlaced((prev) =>
+              prev.map((p) => (p.uid === uid ? { ...p, x, y, ...(z !== undefined ? { z } : {}) } : p))
+            );
+            send({ type: "ROOM_MOVE", uid, x, y, ...(z !== undefined ? { z } : {}) });
+          }}
+          dragging={dragging}
+          onDragStart={(uid) => setDragging(uid)}
+          onDragEnd={() => setDragging(null)}
+        />
       </div>
 
       {/* Mobile bottom tabs */}

@@ -42,6 +42,7 @@ export default function JigsawPuzzle({ universeId, onComplete, onBack }) {
   const [difficulty, setDifficulty] = useState("medium");
   const [pieces, setPieces] = useState([]);
   const [boardPieces, setBoardPieces] = useState([]);
+  const [selectedPiece, setSelectedPiece] = useState(null);
   const [dragging, setDragging] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [completion, setCompletion] = useState(0);
@@ -104,11 +105,16 @@ export default function JigsawPuzzle({ universeId, onComplete, onBack }) {
     completionRef.current = 0;
     setElapsed(0);
     setFinished(false);
+    setSelectedPiece(newPieces[0] || null);
   };
+
+  const unplacedPieces = boardPieces.filter((p) => !p.placed);
+  const placedPieces = boardPieces.filter((p) => p.placed);
 
   const checkCompletion = (updated) => {
     const placedCount = updated.filter((p) => p.placed).length;
-    const pct = Math.round((placedCount / updated.length) * 100);
+    const total = updated.length;
+    const pct = Math.round((placedCount / total) * 100);
     completionRef.current = pct;
     setCompletion(pct);
 
@@ -129,13 +135,23 @@ export default function JigsawPuzzle({ universeId, onComplete, onBack }) {
     }
   };
 
+  const selectPiece = (piece) => {
+    if (piece.placed || dragging) return;
+    setSelectedPiece(piece);
+  };
+
   const handlePointerDown = (e, piece) => {
     if (piece.placed) return;
+    if (piece.id !== selectedPiece?.id) {
+      setSelectedPiece(piece);
+      return;
+    }
     e.preventDefault();
-    const rect = e.currentTarget.getBoundingClientRect();
+    const boardRect = boardRef.current?.getBoundingClientRect();
+    if (!boardRect) return;
     setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: e.clientX - boardRect.left - piece.x,
+      y: e.clientY - boardRect.top - piece.y,
     });
     setDragging(piece);
   };
@@ -150,27 +166,19 @@ export default function JigsawPuzzle({ universeId, onComplete, onBack }) {
       setBoardPieces((prev) =>
         prev.map((p) => (p.id === dragging.id ? { ...p, x, y } : p))
       );
-
       send({ type: "PUZZLE_MOVE", pieceId: dragging.id, x, y });
     },
     [dragging, dragOffset, send]
   );
 
-  const handlePointerUp = useCallback(() => {
+  const snapPiece = useCallback(() => {
     if (!dragging) return;
-
     const grid = GRID_SIZES[difficulty];
     const boardRect = boardRef.current?.getBoundingClientRect();
-    if (!boardRect) {
-      setDragging(null);
-      return;
-    }
+    if (!boardRect) { setDragging(null); return; }
 
     const piece = boardPieces.find((p) => p.id === dragging.id);
-    if (!piece) {
-      setDragging(null);
-      return;
-    }
+    if (!piece) { setDragging(null); return; }
 
     const boardW = boardRect.width;
     const boardH = boardRect.height;
@@ -179,7 +187,6 @@ export default function JigsawPuzzle({ universeId, onComplete, onBack }) {
     const targetX = piece.col * cellW;
     const targetY = piece.row * cellH;
     const snapDist = Math.min(cellW, cellH) * 0.35;
-
     const dist = Math.hypot(piece.x - targetX, piece.y - targetY);
 
     if (dist < snapDist) {
@@ -192,12 +199,15 @@ export default function JigsawPuzzle({ universeId, onComplete, onBack }) {
         checkCompletion(updated);
         return updated;
       });
-
       send({ type: "PUZZLE_PLACE", pieceId: dragging.id, x: targetX, y: targetY });
     }
 
     setDragging(null);
-  }, [dragging, boardPieces, difficulty, elapsed, finished, onComplete, send]);
+  }, [dragging, boardPieces, difficulty, send]);
+
+  const handlePointerUp = useCallback(() => {
+    snapPiece();
+  }, [snapPiece]);
 
   useEffect(() => {
     if (dragging) {
@@ -220,7 +230,7 @@ export default function JigsawPuzzle({ universeId, onComplete, onBack }) {
     return (
       <div className="activity-screen">
         <button className="back-btn" onClick={onBack}>← Back</button>
-        <div className="puzzle-setup">
+        <div className="puzzle-setup" style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
           <h2>🧩 Jigsaw Puzzle</h2>
           <p className="setup-desc">Upload an image and solve it together</p>
 
@@ -256,12 +266,13 @@ export default function JigsawPuzzle({ universeId, onComplete, onBack }) {
   const grid = GRID_SIZES[difficulty];
 
   return (
-    <div className="activity-screen puzzle-game" onPointerMove={handlePointerMove}>
+    <div className="activity-screen puzzle-game">
       <div className="puzzle-toolbar">
         <button className="back-btn" onClick={onBack}>← Back</button>
         <div className="puzzle-stats">
           <span>{completion}%</span>
           <span>{formatTime(elapsed)}</span>
+          <span>{placedPieces.length}/{boardPieces.length}</span>
         </div>
       </div>
 
@@ -271,25 +282,88 @@ export default function JigsawPuzzle({ universeId, onComplete, onBack }) {
         </div>
       )}
 
-      <div className="puzzle-board" ref={boardRef}>
-        {boardPieces.map((piece) => (
+      <div className="puzzle-board" ref={boardRef} onPointerMove={handlePointerMove}>
+        {/* Ghost grid */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            gridTemplateColumns: `repeat(${grid}, 1fr)`,
+            gridTemplateRows: `repeat(${grid}, 1fr)`,
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        >
+          {Array.from({ length: grid * grid }).map((_, i) => (
+            <div
+              key={i}
+              style={{
+                border: "1px solid rgba(255,255,255,0.04)",
+                borderRadius: 2,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Placed pieces on the board */}
+        {placedPieces.map((piece) => (
           <div
             key={piece.id}
-            className={`puzzle-piece ${piece.placed ? "placed" : ""} ${
-              dragging?.id === piece.id ? "dragging" : ""
-            }`}
+            className="puzzle-piece placed"
             style={{
-              left: piece.placed ? `${piece.col * (100 / grid)}%` : piece.x,
-              top: piece.placed ? `${piece.row * (100 / grid)}%` : piece.y,
+              left: `${piece.col * (100 / grid)}%`,
+              top: `${piece.row * (100 / grid)}%`,
               width: `${100 / grid}%`,
               height: `${100 / grid}%`,
               backgroundImage: `url(${piece.dataUrl})`,
               backgroundSize: "100% 100%",
-              zIndex: dragging?.id === piece.id ? 100 : piece.placed ? 1 : 10,
+              zIndex: 1,
             }}
-            onPointerDown={(e) => handlePointerDown(e, piece)}
           />
         ))}
+
+        {/* Selected piece (draggable) */}
+        {selectedPiece && !selectedPiece.placed && (
+          <div
+            className={`puzzle-piece ${dragging?.id === selectedPiece.id ? "dragging" : "selected"}`}
+            style={{
+              left: dragging?.id === selectedPiece.id
+                ? selectedPiece.x
+                : `${selectedPiece.col * (100 / grid)}%`,
+              top: dragging?.id === selectedPiece.id
+                ? selectedPiece.y
+                : `${selectedPiece.row * (100 / grid)}%`,
+              width: `${100 / grid}%`,
+              height: `${100 / grid}%`,
+              backgroundImage: `url(${selectedPiece.dataUrl})`,
+              backgroundSize: "100% 100%",
+              zIndex: dragging?.id === selectedPiece.id ? 100 : 10,
+              opacity: dragging?.id === selectedPiece.id ? 1 : 0.6,
+            }}
+            onPointerDown={(e) => handlePointerDown(e, selectedPiece)}
+          />
+        )}
+      </div>
+
+      {/* Piece tray */}
+      <div className="puzzle-tray">
+        <div className="puzzle-tray-label">
+          Pieces left ({unplacedPieces.length})
+        </div>
+        <div className="puzzle-tray-grid">
+          {unplacedPieces.map((piece) => (
+            <button
+              key={piece.id}
+              className={`puzzle-tray-piece ${selectedPiece?.id === piece.id ? "active" : ""}`}
+              onClick={() => selectPiece(piece)}
+              style={{
+                backgroundImage: `url(${piece.dataUrl})`,
+                backgroundSize: "100% 100%",
+              }}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
