@@ -1,0 +1,16 @@
+{
+  "name": "univas",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "cd server && npm install && cd ../app && npm install",
+    "build": "cd app && npm run build",
+    "start": "cd server && node index.js",
+    "dev": "cd server && node --watch index.js",
+    "setup": "npm run install:all && npm run build",
+    "production": "npm run build && npm start"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
