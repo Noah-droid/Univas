@@ -1,0 +1,413 @@
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useActivityWS } from "../../hooks/useActivityWS";
+import { api } from "../../api";
+import "./VirtualRoom.css";
+
+const WALL_COLORS = [
+  { id: "midnight", color: "#0d1117", name: "Midnight" },
+  { id: "deep", color: "#131922", name: "Deep Space" },
+  { id: "plum", color: "#1a0f1e", name: "Plum" },
+  { id: "navy", color: "#0f1729", name: "Navy" },
+  { id: "forest", color: "#0d1a14", name: "Forest" },
+  { id: "wine", color: "#1a0d0d", name: "Wine" },
+  { id: "slate", color: "#1a1d23", name: "Slate" },
+  { id: "warm", color: "#1a1610", name: "Warm" },
+];
+
+const FLOOR_COLORS = [
+  { id: "dark-wood", color: "#1a1520", name: "Dark Wood" },
+  { id: "light-wood", color: "#2a2018", name: "Light Wood" },
+  { id: "marble", color: "#1a1a1f", name: "Marble" },
+  { id: "carpet", color: "#181420", name: "Carpet" },
+  { id: "stone", color: "#1a1a18", name: "Stone" },
+];
+
+const DECORATIONS = [
+  { id: "photo", icon: "🖼️", name: "Photo", category: "memories", size: 40 },
+  { id: "painting", icon: "🎨", name: "Painting", category: "memories", size: 50 },
+  { id: "clock", icon: "🕰️", name: "Clock", category: "decor", size: 36 },
+  { id: "lamp", icon: "💡", name: "Lamp", category: "decor", size: 32 },
+  { id: "plant", icon: "🌿", name: "Plant", category: "decor", size: 38 },
+  { id: "flower", icon: "🌸", name: "Flower", category: "decor", size: 30 },
+  { id: "candle", icon: "🕯️", name: "Candle", category: "decor", size: 28 },
+  { id: "star", icon: "⭐", name: "Star", category: "decor", size: 26 },
+  { id: "heart", icon: "❤️", name: "Heart", category: "memories", size: 28 },
+  { id: "music", icon: "🎵", name: "Music", category: "memories", size: 28 },
+  { id: "book", icon: "📖", name: "Book", category: "memories", size: 30 },
+  { id: "gift", icon: "🎁", name: "Gift", category: "gifts", size: 34 },
+  { id: "teddy", icon: "🧸", name: "Teddy", category: "gifts", size: 36 },
+  { id: "diamond", icon: "💎", name: "Gem", category: "gifts", size: 26 },
+  { id: "cake", icon: "🎂", name: "Cake", category: "memories", size: 34 },
+  { id: "souvenir", icon: "🧭", name: "Souvenir", category: "memories", size: 30 },
+  { id: "note", icon: "📝", name: "Note", category: "notes", size: 26 },
+  { id: "rug", icon: "🟫", name: "Rug", category: "floor", size: 60 },
+  { id: "table", icon: "🪑", name: "Table", category: "floor", size: 50 },
+  { id: "shelf", icon: "📚", name: "Shelf", category: "wall", size: 56 },
+];
+
+const CATEGORIES = ["all", "memories", "gifts", "decor", "notes", "floor", "wall"];
+
+export default function VirtualRoom({ universeId, onComplete, onBack }) {
+  const [placed, setPlaced] = useState([]);
+  const [selectedObj, setSelectedObj] = useState(null);
+  const [dragging, setDragging] = useState(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [filter, setFilter] = useState("all");
+  const [wallColor, setWallColor] = useState(WALL_COLORS[0].color);
+  const [floorColor, setFloorColor] = useState(FLOOR_COLORS[0].color);
+  const [showColorPicker, setShowColorPicker] = useState(null);
+  const [noteInput, setNoteInput] = useState("");
+  const [showNoteInput, setShowNoteInput] = useState(false);
+  const [pendingNotePos, setPendingNotePos] = useState(null);
+  const [activeTab, setActiveTab] = useState("objects");
+  const roomRef = useRef(null);
+
+  const { send } = useActivityWS(universeId, (msg) => {
+    if (msg.type === "ROOM_PLACE") {
+      setPlaced((prev) => {
+        if (prev.find((p) => p.uid === msg.item.uid)) return prev;
+        return [...prev, msg.item];
+      });
+    } else if (msg.type === "ROOM_MOVE") {
+      setPlaced((prev) =>
+        prev.map((p) => (p.uid === msg.uid ? { ...p, x: msg.x, y: msg.y } : p))
+      );
+    } else if (msg.type === "ROOM_REMOVE") {
+      setPlaced((prev) => prev.filter((p) => p.uid !== msg.uid));
+    } else if (msg.type === "ROOM_WALL") {
+      setWallColor(msg.color);
+    } else if (msg.type === "ROOM_FLOOR") {
+      setFloorColor(msg.color);
+    } else if (msg.type === "ROOM_SYNC") {
+      setWallColor(msg.room.wallColor);
+      setFloorColor(msg.room.floorColor);
+      setPlaced(msg.room.objects);
+    }
+  });
+
+  useEffect(() => {
+    if (!universeId) return;
+    api.getRoom(universeId).then((room) => {
+      setWallColor(room.wall_color);
+      setFloorColor(room.floor_color);
+      setPlaced(room.objects);
+    }).catch(console.error);
+  }, [universeId]);
+
+  const filteredDecos = filter === "all"
+    ? DECORATIONS
+    : DECORATIONS.filter((d) => d.category === filter);
+
+  const handleObjectClick = (obj) => {
+    setSelectedObj(obj);
+    setActiveTab("objects");
+  };
+
+  const handleRoomClick = (e) => {
+    if (!selectedObj) return;
+    const rect = roomRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    if (selectedObj.id === "note") {
+      setPendingNotePos({ x, y });
+      setShowNoteInput(true);
+      return;
+    }
+
+    const item = { ...selectedObj, uid: Date.now(), x, y, text: "" };
+    setPlaced((prev) => [...prev, item]);
+    send({ type: "ROOM_PLACE", item });
+  };
+
+  const confirmNote = () => {
+    if (!pendingNotePos) return;
+    const item = {
+      ...selectedObj,
+      uid: Date.now(),
+      x: pendingNotePos.x,
+      y: pendingNotePos.y,
+      text: noteInput,
+    };
+    setPlaced((prev) => [...prev, item]);
+    send({ type: "ROOM_PLACE", item });
+    setNoteInput("");
+    setShowNoteInput(false);
+    setPendingNotePos(null);
+  };
+
+  const handlePointerDown = (e, item) => {
+    e.stopPropagation();
+    const rect = roomRef.current.getBoundingClientRect();
+    const itemX = (item.x / 100) * rect.width;
+    const itemY = (item.y / 100) * rect.height;
+    setDragOffset({
+      x: e.clientX - rect.left - itemX,
+      y: e.clientY - rect.top - itemY,
+    });
+    setDragging(item.uid);
+  };
+
+  const handlePointerMove = useCallback(
+    (e) => {
+      if (!dragging || !roomRef.current) return;
+      const rect = roomRef.current.getBoundingClientRect();
+      const x = ((e.clientX - rect.left - dragOffset.x) / rect.width) * 100;
+      const y = ((e.clientY - rect.top - dragOffset.y) / rect.height) * 100;
+      const clamped = { x: Math.max(2, Math.min(95, x)), y: Math.max(2, Math.min(90, y)) };
+
+      setPlaced((prev) =>
+        prev.map((p) => (p.uid === dragging ? { ...p, ...clamped } : p))
+      );
+      send({ type: "ROOM_MOVE", uid: dragging, ...clamped });
+    },
+    [dragging, dragOffset, send]
+  );
+
+  const handlePointerUp = useCallback(() => {
+    setDragging(null);
+  }, []);
+
+  useEffect(() => {
+    if (dragging) {
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+      return () => {
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", handlePointerUp);
+      };
+    }
+  }, [dragging, handlePointerMove, handlePointerUp]);
+
+  const removeItem = (uid) => {
+    setPlaced((prev) => prev.filter((p) => p.uid !== uid));
+    send({ type: "ROOM_REMOVE", uid });
+  };
+
+  const changeWallColor = (color) => {
+    setWallColor(color);
+    send({ type: "ROOM_WALL", color });
+    api.saveRoom(universeId, { wallColor: color, floorColor, objects: placed }).catch(console.error);
+  };
+
+  const changeFloorColor = (color) => {
+    setFloorColor(color);
+    send({ type: "ROOM_FLOOR", color });
+    api.saveRoom(universeId, { wallColor, floorColor: color, objects: placed }).catch(console.error);
+  };
+
+  const saveRoom = async () => {
+    if (placed.length === 0) return;
+    try {
+      await api.saveRoom(universeId, { wallColor, floorColor, objects: placed });
+    } catch (e) {}
+    const difficulty = Math.min(5, Math.max(1, Math.ceil(placed.length / 3)));
+    onComplete({
+      type: "room",
+      title: "Our Room",
+      completion: 100,
+      difficulty,
+      timeSpent: 0,
+      size: placed.length >= 8 ? "large" : placed.length >= 4 ? "medium" : "small",
+      message: `${placed.length} memories in our space`,
+      assets: [],
+    });
+  };
+
+  return (
+    <div className="activity-screen virtual-room-screen">
+      <div className="room-toolbar">
+        <button className="back-btn" onClick={onBack}>← Back</button>
+        <div className="room-title">🏠 Our Room</div>
+        <div className="room-count">{placed.length} items</div>
+        <button className="save-room-btn" onClick={saveRoom} disabled={placed.length === 0}>
+          Save Room ✨
+        </button>
+      </div>
+
+      <div className="room-body">
+        <div className="room-sidebar">
+          <div className="sidebar-tabs">
+            <button
+              className={`sidebar-tab ${activeTab === "objects" ? "active" : ""}`}
+              onClick={() => setActiveTab("objects")}
+            >
+              Objects
+            </button>
+            <button
+              className={`sidebar-tab ${activeTab === "walls" ? "active" : ""}`}
+              onClick={() => setActiveTab("walls")}
+            >
+              Walls
+            </button>
+            <button
+              className={`sidebar-tab ${activeTab === "floor" ? "active" : ""}`}
+              onClick={() => setActiveTab("floor")}
+            >
+              Floor
+            </button>
+          </div>
+
+          {activeTab === "objects" && (
+            <>
+              <div className="palette-filters">
+                {CATEGORIES.map((c) => (
+                  <button
+                    key={c}
+                    className={`filter-btn ${filter === c ? "active" : ""}`}
+                    onClick={() => setFilter(c)}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+              <div className="palette-grid">
+                {filteredDecos.map((obj) => (
+                  <button
+                    key={obj.id}
+                    className={`palette-item ${selectedObj?.id === obj.id ? "selected" : ""}`}
+                    onClick={() => handleObjectClick(obj)}
+                  >
+                    <span className="palette-icon">{obj.icon}</span>
+                    <span className="palette-name">{obj.name}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="palette-hint">
+                {selectedObj
+                  ? `Tap room to place ${selectedObj.name}`
+                  : "Pick an object"}
+              </p>
+            </>
+          )}
+
+          {activeTab === "walls" && (
+            <div className="color-picker-grid">
+              {WALL_COLORS.map((c) => (
+                <button
+                  key={c.id}
+                  className={`color-option ${wallColor === c.color ? "active" : ""}`}
+                  style={{ background: c.color }}
+                  onClick={() => changeWallColor(c.color)}
+                >
+                  <span className="color-name">{c.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {activeTab === "floor" && (
+            <div className="color-picker-grid">
+              {FLOOR_COLORS.map((c) => (
+                <button
+                  key={c.id}
+                  className={`color-option ${floorColor === c.color ? "active" : ""}`}
+                  style={{ background: c.color }}
+                  onClick={() => changeFloorColor(c.color)}
+                >
+                  <span className="color-name">{c.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div
+          className={`room-canvas ${selectedObj ? "placing" : ""}`}
+          ref={roomRef}
+          onClick={handleRoomClick}
+        >
+          <div className="room-3d">
+            <div className="wall-back" style={{ background: wallColor }} />
+            <div className="wall-left" style={{ background: wallColor, filter: "brightness(0.85)" }} />
+            <div className="wall-right" style={{ background: wallColor, filter: "brightness(0.9)" }} />
+            <div className="wall-top" style={{ background: wallColor, filter: "brightness(1.1)" }} />
+            <div className="floor-surface" style={{ background: floorColor }} />
+            <div className="floor-grid" />
+
+            {placed
+              .filter((item) => item.category !== "floor")
+              .map((item) => (
+                <div
+                  key={item.uid}
+                  className={`room-item wall-item ${dragging === item.uid ? "dragging" : ""}`}
+                  style={{
+                    left: `${item.x}%`,
+                    top: `${Math.min(item.y, 55)}%`,
+                  }}
+                  onPointerDown={(e) => handlePointerDown(e, item)}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    removeItem(item.uid);
+                  }}
+                >
+                  <span
+                    className="room-item-icon"
+                    style={{ fontSize: item.size || 36 }}
+                  >
+                    {item.icon}
+                  </span>
+                  {item.text && <span className="room-item-text">{item.text}</span>}
+                </div>
+              ))}
+
+            {placed
+              .filter((item) => item.category === "floor")
+              .map((item) => (
+                <div
+                  key={item.uid}
+                  className={`room-item floor-item ${dragging === item.uid ? "dragging" : ""}`}
+                  style={{
+                    left: `${item.x}%`,
+                    top: `${Math.max(item.y, 55)}%`,
+                  }}
+                  onPointerDown={(e) => handlePointerDown(e, item)}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    removeItem(item.uid);
+                  }}
+                >
+                  <span
+                    className="room-item-icon"
+                    style={{ fontSize: item.size || 40 }}
+                  >
+                    {item.icon}
+                  </span>
+                </div>
+              ))}
+
+            {placed.length === 0 && (
+              <div className="room-empty">
+                Pick an object and tap to place it
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {showNoteInput && (
+        <div className="note-modal" onClick={() => setShowNoteInput(false)}>
+          <div className="note-modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3>📝 Leave a note</h3>
+            <textarea
+              className="note-textarea"
+              placeholder="Write something..."
+              value={noteInput}
+              onChange={(e) => setNoteInput(e.target.value)}
+              autoFocus
+              rows={3}
+            />
+            <div className="note-actions">
+              <button className="back-btn" onClick={() => setShowNoteInput(false)}>
+                Cancel
+              </button>
+              <button className="save-room-btn" onClick={confirmNote}>
+                Place Note
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
