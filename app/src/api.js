@@ -1,5 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL || "";
-const WS_URL = import.meta.env.VITE_WS_URL || `ws://${window.location.host}`;
+const WS_URL = import.meta.env.VITE_WS_URL || `ws://${window.location.hostname}:3001`;
 
 async function request(path, options = {}) {
   const token = localStorage.getItem("token");
@@ -78,16 +78,50 @@ export const api = {
 
 export function connectWS(universeId, onMessage) {
   const token = localStorage.getItem("token");
-  const ws = new WebSocket(`${WS_URL}?token=${token}&universe=${universeId}`);
+  let ws;
+  let closed = false;
+
+  try {
+    ws = new WebSocket(`${WS_URL}?token=${token}&universe=${universeId}`);
+  } catch (e) {
+    console.warn("WebSocket connection failed:", e);
+    return { close: () => {} };
+  }
 
   ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    onMessage(data);
+    try {
+      const data = JSON.parse(event.data);
+      onMessage(data);
+    } catch (e) {
+      console.warn("WebSocket message parse error:", e);
+    }
+  };
+
+  ws.onerror = (e) => {
+    console.warn("WebSocket error");
   };
 
   ws.onclose = () => {
-    setTimeout(() => connectWS(universeId, onMessage), 3000);
+    if (!closed) {
+      setTimeout(() => {
+        if (!closed) {
+          const newWs = connectWS(universeId, onMessage);
+          Object.assign(ws, newWs);
+        }
+      }, 3000);
+    }
   };
 
-  return ws;
+  return {
+    close: () => {
+      closed = true;
+      ws.close();
+    },
+    get readyState() {
+      return ws.readyState;
+    },
+    send(data) {
+      if (ws.readyState === 1) ws.send(data);
+    },
+  };
 }
