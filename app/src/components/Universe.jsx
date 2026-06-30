@@ -223,6 +223,14 @@ export default function Universe({ universeId, universeName, onOpenActivity, onL
           <Star key={star.id} star={star} universeSize={UNIVERSE_SIZE} onClick={handleStarClick} />
         ))}
 
+        {stars.length === 0 && (
+          <div className="universe-empty">
+            <div className="universe-empty-icon">✦</div>
+            <h3>Your universe is empty</h3>
+            <p>Tap <span className="empty-plus">+</span> below to create your first star</p>
+          </div>
+        )}
+
         {Object.entries(partnerCursors).map(([userId, cursor]) => (
           <div
             key={userId}
