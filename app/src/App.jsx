@@ -13,6 +13,7 @@ function AppContent() {
   const [view, setView] = useState("landing");
   const [showActivity, setShowActivity] = useState(false);
   const [pendingJoin, setPendingJoin] = useState(null);
+  const [fetching, setFetching] = useState(false);
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -37,6 +38,16 @@ function AppContent() {
       setView("picker");
     }
   }, [user, pendingJoin]);
+
+  useEffect(() => {
+    if (user && (view === "picker" || view === "universe") && !activeUniverse) {
+      setFetching(true);
+      api.getUniverses()
+        .then(setUniverses)
+        .catch(console.error)
+        .finally(() => setFetching(false));
+    }
+  }, [user, view, activeUniverse]);
 
   const handleJoinByCode = async (code) => {
     try {
@@ -78,30 +89,6 @@ function AppContent() {
     );
   }
 
-  if (view === "picker" || !activeUniverse) {
-    return (
-      <UniversePicker
-        universes={universes}
-        onSelect={(u) => {
-          setActiveUniverse(u);
-          setView("universe");
-        }}
-        onCreate={async (name) => {
-          const u = await api.createUniverse(name);
-          setUniverses((prev) => [...prev, u]);
-          setActiveUniverse(u);
-          setView("universe");
-        }}
-        onLogout={() => {
-          logout();
-          setActiveUniverse(null);
-          setUniverses([]);
-          setView("landing");
-        }}
-      />
-    );
-  }
-
   if (showActivity) {
     return (
       <ActivityView
@@ -112,29 +99,60 @@ function AppContent() {
     );
   }
 
+  if (activeUniverse && view === "universe") {
+    return (
+      <Universe
+        universeId={activeUniverse.id}
+        universeName={activeUniverse.name}
+        onOpenActivity={() => setShowActivity(true)}
+        onLeave={() => {
+          setActiveUniverse(null);
+          setView("picker");
+        }}
+      />
+    );
+  }
+
   return (
-    <Universe
-      universeId={activeUniverse.id}
-      universeName={activeUniverse.name}
-      onOpenActivity={() => setShowActivity(true)}
-      onLeave={() => {
+    <UniversePicker
+      universes={universes}
+      loading={fetching}
+      onSelect={(u) => {
+        setActiveUniverse(u);
+        setView("universe");
+      }}
+      onCreate={async (name) => {
+        const u = await api.createUniverse(name);
+        setUniverses((prev) => [...prev, u]);
+        setActiveUniverse(u);
+        setView("universe");
+      }}
+      onLogout={() => {
+        logout();
         setActiveUniverse(null);
-        setView("picker");
+        setUniverses([]);
+        setView("landing");
       }}
     />
   );
 }
 
-function UniversePicker({ universes, onSelect, onCreate, onLogout }) {
+function UniversePicker({ universes, loading, onSelect, onCreate, onLogout }) {
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
   const [showInvite, setShowInvite] = useState(false);
   const [joinInput, setJoinInput] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!name.trim()) return;
-    await onCreate(name.trim());
+    setCreating(true);
+    try {
+      await onCreate(name.trim());
+    } finally {
+      setCreating(false);
+    }
   };
 
   const handleJoin = async (e) => {
@@ -152,6 +170,20 @@ function UniversePicker({ universes, onSelect, onCreate, onLogout }) {
     <div className="auth-screen">
       <div className="auth-bg">
         <div className="auth-nebula" />
+        {Array.from({ length: 30 }, (_, i) => (
+          <div
+            key={i}
+            className="auth-bg-star"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              width: `${Math.random() * 2 + 1}px`,
+              height: `${Math.random() * 2 + 1}px`,
+              opacity: Math.random() * 0.4 + 0.2,
+              animationDuration: `${Math.random() * 3 + 2}s`,
+            }}
+          />
+        ))}
       </div>
       <div className="auth-container" style={{ gap: 24 }}>
         <div className="auth-brand">
@@ -161,84 +193,95 @@ function UniversePicker({ universes, onSelect, onCreate, onLogout }) {
         </div>
 
         <div className="auth-card">
-          {universes.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
-              {universes.map((u) => (
-                <button
-                  key={u.id}
-                  className="auth-submit"
-                  style={{ marginBottom: 8, background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.1)" }}
-                  onClick={() => onSelect(u)}
-                >
-                  {u.name}
-                </button>
-              ))}
+          {loading ? (
+            <div style={{ textAlign: "center", padding: 20, color: "rgba(255,255,255,0.3)", fontSize: 14 }}>
+              Loading your universes...
             </div>
-          )}
+          ) : (
+            <>
+              {universes.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, textAlign: "center" }}>
+                    Your Universes
+                  </div>
+                  {universes.map((u) => (
+                    <button
+                      key={u.id}
+                      className="auth-submit"
+                      style={{ marginBottom: 8, background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.1)" }}
+                      onClick={() => onSelect(u)}
+                    >
+                      ✦ {u.name}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-          {!showCreate && !showInvite && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <button className="auth-submit" onClick={() => setShowCreate(true)}>
-                + Create New Universe
-              </button>
-              <button
-                className="auth-submit"
-                style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.08)" }}
-                onClick={() => setShowInvite(true)}
-              >
-                Join with Invite Code
-              </button>
-            </div>
-          )}
+              {!showCreate && !showInvite && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <button className="auth-submit" onClick={() => setShowCreate(true)}>
+                    + Create New Universe
+                  </button>
+                  <button
+                    className="auth-submit"
+                    style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.08)" }}
+                    onClick={() => setShowInvite(true)}
+                  >
+                    Join with Invite Code
+                  </button>
+                </div>
+              )}
 
-          {showCreate && (
-            <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div className="input-group">
-                <label>Universe Name</label>
-                <input
-                  placeholder="our universe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <button type="submit" className="auth-submit" disabled={!name.trim()}>
-                Create
-              </button>
-              <button
-                type="button"
-                className="auth-submit"
-                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: 13 }}
-                onClick={() => setShowCreate(false)}
-              >
-                Cancel
-              </button>
-            </form>
-          )}
+              {showCreate && (
+                <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div className="input-group">
+                    <label>Universe Name</label>
+                    <input
+                      placeholder="our universe"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  <button type="submit" className="auth-submit" disabled={!name.trim() || creating}>
+                    {creating ? "Creating..." : "Create"}
+                  </button>
+                  <button
+                    type="button"
+                    className="auth-submit"
+                    style={{ background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: 13 }}
+                    onClick={() => setShowCreate(false)}
+                  >
+                    Cancel
+                  </button>
+                </form>
+              )}
 
-          {showInvite && (
-            <form onSubmit={handleJoin} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div className="input-group">
-                <label>Invite Code</label>
-                <input
-                  placeholder="e.g. a1b2c3d4"
-                  value={joinInput}
-                  onChange={(e) => setJoinInput(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <button type="submit" className="auth-submit" disabled={!joinInput.trim()}>
-                Join Universe
-              </button>
-              <button
-                type="button"
-                className="auth-submit"
-                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: 13 }}
-                onClick={() => setShowInvite(false)}
-              >
-                Cancel
-              </button>
-            </form>
+              {showInvite && (
+                <form onSubmit={handleJoin} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div className="input-group">
+                    <label>Invite Code</label>
+                    <input
+                      placeholder="e.g. a1b2c3d4"
+                      value={joinInput}
+                      onChange={(e) => setJoinInput(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  <button type="submit" className="auth-submit" disabled={!joinInput.trim()}>
+                    Join Universe
+                  </button>
+                  <button
+                    type="button"
+                    className="auth-submit"
+                    style={{ background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: 13 }}
+                    onClick={() => setShowInvite(false)}
+                  >
+                    Cancel
+                  </button>
+                </form>
+              )}
+            </>
           )}
         </div>
 
