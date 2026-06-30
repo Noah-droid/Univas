@@ -60,6 +60,7 @@ export default function VirtualRoom({ universeId, onComplete, onBack }) {
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [pendingNotePos, setPendingNotePos] = useState(null);
   const [activeTab, setActiveTab] = useState("objects");
+  const [sheetOpen, setSheetOpen] = useState(false);
   const roomRef = useRef(null);
 
   const { send } = useActivityWS(universeId, (msg) => {
@@ -212,6 +213,15 @@ export default function VirtualRoom({ universeId, onComplete, onBack }) {
       message: `${placed.length} memories in our space`,
       assets: [],
     });
+  };
+
+  const handleBottomTab = (tab) => {
+    if (activeTab === tab && sheetOpen) {
+      setSheetOpen(false);
+    } else {
+      setActiveTab(tab);
+      setSheetOpen(true);
+    }
   };
 
   return (
@@ -376,12 +386,117 @@ export default function VirtualRoom({ universeId, onComplete, onBack }) {
                 </div>
               ))}
 
-            {placed.length === 0 && (
+            {placed.length === 0 && !sheetOpen && (
               <div className="room-empty">
                 Pick an object and tap to place it
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Mobile bottom tabs */}
+      <div className="room-bottom-tabs">
+        <button
+          className={`room-bottom-tab ${activeTab === "objects" && sheetOpen ? "active" : ""}`}
+          onClick={() => handleBottomTab("objects")}
+        >
+          <span className="room-bottom-tab-icon">📦</span>
+          Objects
+        </button>
+        <button
+          className={`room-bottom-tab ${activeTab === "walls" && sheetOpen ? "active" : ""}`}
+          onClick={() => handleBottomTab("walls")}
+        >
+          <span className="room-bottom-tab-icon">🧱</span>
+          Walls
+        </button>
+        <button
+          className={`room-bottom-tab ${activeTab === "floor" && sheetOpen ? "active" : ""}`}
+          onClick={() => handleBottomTab("floor")}
+        >
+          <span className="room-bottom-tab-icon">⬛</span>
+          Floor
+        </button>
+      </div>
+
+      {/* Mobile bottom sheet overlay */}
+      <div
+        className={`room-sheet-overlay ${sheetOpen ? "visible" : ""}`}
+        onClick={() => setSheetOpen(false)}
+      />
+
+      {/* Mobile bottom sheet */}
+      <div className={`room-sheet ${sheetOpen ? "open" : ""}`}>
+        <div className="room-sheet-handle" />
+        <div className="room-sheet-header">
+          <span className="room-sheet-title">
+            {activeTab === "objects" ? "Objects" : activeTab === "walls" ? "Wall Colors" : "Floor Colors"}
+          </span>
+          <button className="room-sheet-close" onClick={() => setSheetOpen(false)}>×</button>
+        </div>
+        <div className="room-sheet-body">
+          {activeTab === "objects" && (
+            <>
+              <div className="sheet-filters">
+                {CATEGORIES.map((c) => (
+                  <button
+                    key={c}
+                    className={`sheet-filter-chip ${filter === c ? "active" : ""}`}
+                    onClick={() => setFilter(c)}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+              <div className="sheet-grid">
+                {filteredDecos.map((obj) => (
+                  <button
+                    key={obj.id}
+                    className={`sheet-grid-item ${selectedObj?.id === obj.id ? "selected" : ""}`}
+                    onClick={() => {
+                      handleObjectClick(obj);
+                      setSheetOpen(false);
+                    }}
+                  >
+                    <span className="sheet-grid-icon">{obj.icon}</span>
+                    <span className="sheet-grid-name">{obj.name}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="sheet-hint">
+                {selectedObj
+                  ? <>Selected: <strong>{selectedObj.name}</strong> — tap room to place</>
+                  : "Pick an object, then tap the room"}
+              </div>
+            </>
+          )}
+
+          {activeTab === "walls" && (
+            <div className="sheet-color-grid">
+              {WALL_COLORS.map((c) => (
+                <button
+                  key={c.id}
+                  className={`sheet-color-item ${wallColor === c.color ? "active" : ""}`}
+                  style={{ background: c.color }}
+                  onClick={() => changeWallColor(c.color)}
+                />
+              ))}
+            </div>
+          )}
+
+          {activeTab === "floor" && (
+            <div className="sheet-color-grid">
+              {FLOOR_COLORS.map((c) => (
+                <button
+                  key={c.id}
+                  className={`sheet-color-item ${floorColor === c.color ? "active" : ""}`}
+                  style={{ background: c.color }}
+                  onClick={() => changeFloorColor(c.color)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
