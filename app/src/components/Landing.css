@@ -1,0 +1,206 @@
+.landing {
+  min-height: 100vh;
+  background: #000008;
+  overflow-y: auto;
+}
+
+.landing-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 40px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(0, 0, 8, 0.8);
+  backdrop-filter: blur(12px);
+}
+
+.landing-logo {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.landing-nav-btn {
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.landing-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 24px;
+  position: relative;
+}
+
+.hero-glow {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(123, 104, 238, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-title {
+  font-size: clamp(36px, 6vw, 72px);
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.15;
+  margin-bottom: 20px;
+  max-width: 700px;
+}
+
+.hero-star {
+  background: linear-gradient(135deg, #ffd700, #ff6b6b, #7b68ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.45);
+  max-width: 500px;
+  line-height: 1.6;
+  margin-bottom: 36px;
+}
+
+.hero-cta {
+  padding: 16px 40px;
+  background: linear-gradient(135deg, rgba(123, 104, 238, 0.3), rgba(255, 107, 107, 0.3));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.hero-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(123, 104, 238, 0.2);
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 80px 40px;
+}
+
+.feature {
+  text-align: center;
+  padding: 32px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+}
+
+.feature-icon {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.feature h3 {
+  color: #fff;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.feature p {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.constellation-section {
+  text-align: center;
+  padding: 100px 40px;
+  position: relative;
+}
+
+.constellation-visual {
+  position: relative;
+  height: 200px;
+  max-width: 400px;
+  margin: 0 auto 40px;
+}
+
+.float-star {
+  position: absolute;
+  animation: float 4s ease-in-out infinite alternate;
+}
+
+.constellation-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.constellation-lines line {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 1;
+}
+
+.constellation-section h2 {
+  color: #fff;
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.constellation-section p {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 16px;
+  max-width: 450px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.landing-footer {
+  text-align: center;
+  padding: 40px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.landing-footer p {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 13px;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); opacity: 0.6; }
+  100% { transform: translateY(-12px); opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .features {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .landing-nav {
+    padding: 16px 20px;
+  }
+}
