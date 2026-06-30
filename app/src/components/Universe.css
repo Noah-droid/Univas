@@ -1,0 +1,230 @@
+.universe {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000008;
+  touch-action: none;
+  user-select: none;
+}
+
+.nebula-layer {
+  position: absolute;
+  inset: -50%;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(88, 28, 135, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(30, 64, 175, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(127, 29, 29, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 60%, rgba(6, 95, 70, 0.08) 0%, transparent 40%);
+  animation: nebulaDrift 60s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.universe-canvas {
+  position: absolute;
+  width: 4000px;
+  height: 4000px;
+  left: 50%;
+  top: 50%;
+  margin-left: -2000px;
+  margin-top: -2000px;
+  will-change: transform;
+  transform-origin: center center;
+}
+
+.bg-star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  animation: twinkleBg var(--twinkle-speed, 3s) ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes twinkleBg {
+  0% {
+    opacity: var(--base-opacity, 0.3);
+    transform: scale(1);
+  }
+  100% {
+    opacity: calc(var(--base-opacity, 0.3) + 0.3);
+    transform: scale(1.3);
+  }
+}
+
+@keyframes nebulaDrift {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  100% {
+    transform: translate(-3%, -2%) rotate(2deg);
+  }
+}
+
+.hud {
+  position: fixed;
+  top: 16px;
+  left: 20px;
+  right: 20px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.hud-top-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.hud-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.hud-invite-btn {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.hud-invite-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.hud-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+  margin-top: 4px;
+}
+
+.invite-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.invite-card {
+  background: linear-gradient(135deg, #0a0a1a, #151530);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+  max-width: 340px;
+}
+
+.invite-card h3 {
+  color: #fff;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.invite-card p {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.invite-code {
+  font-size: 28px;
+  font-weight: 700;
+  color: #7b68ee;
+  letter-spacing: 4px;
+  padding: 16px;
+  background: rgba(123, 104, 238, 0.08);
+  border: 1px solid rgba(123, 104, 238, 0.2);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-family: monospace;
+}
+
+.invite-copy-btn {
+  width: 100%;
+  padding: 12px;
+  background: rgba(123, 104, 238, 0.2);
+  border: 1px solid rgba(123, 104, 238, 0.3);
+  border-radius: 8px;
+  color: #7b68ee;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.invite-copy-btn:hover {
+  background: rgba(123, 104, 238, 0.3);
+}
+
+.hud-zoom {
+  position: fixed;
+  bottom: 24px;
+  right: 28px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.3);
+  font-variant-numeric: tabular-nums;
+}
+
+.fab-activity {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+}
+
+.fab-activity:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateX(-50%) scale(1.1);
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+}
+
+.partner-cursor {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 50;
+  transition: left 0.1s linear, top 0.1s linear;
+}
+
+.cursor-dot {
+  width: 8px;
+  height: 8px;
+  background: #ff6b6b;
+  border-radius: 50%;
+  box-shadow: 0 0 12px #ff6b6b;
+}
+
+.cursor-label {
+  position: absolute;
+  top: 12px;
+  left: 8px;
+  font-size: 11px;
+  color: rgba(255, 107, 107, 0.8);
+  white-space: nowrap;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+}
