@@ -1,5 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL || "";
-const WS_URL = import.meta.env.VITE_WS_URL || `ws://${window.location.hostname}:3001`;
+const WS_URL = import.meta.env.VITE_WS_URL || `ws://${window.location.host}`;
 
 async function request(path, options = {}) {
   const token = localStorage.getItem("token");
