@@ -1,31 +1,34 @@
 const { Router } = require("express");
-const db = require("../db");
+const { pool } = require("../db");
 const auth = require("../middleware/auth");
 
 const router = Router();
 
-router.get("/:universeId", auth, (req, res) => {
-  const member = db
-    .prepare("SELECT * FROM universe_members WHERE universe_id = ? AND user_id = ?")
-    .get(req.params.universeId, req.user.id);
+router.get("/:universeId", auth, async (req, res) => {
+  const member = await pool.query(
+    "SELECT * FROM universe_members WHERE universe_id = $1 AND user_id = $2",
+    [req.params.universeId, req.user.id]
+  );
 
-  if (!member) {
+  if (member.rows.length === 0) {
     return res.status(403).json({ error: "Not a member of this universe" });
   }
 
-  const stars = db
-    .prepare("SELECT * FROM stars WHERE universe_id = ? ORDER BY created_at DESC")
-    .all(req.params.universeId);
+  const result = await pool.query(
+    "SELECT * FROM stars WHERE universe_id = $1 ORDER BY created_at DESC",
+    [req.params.universeId]
+  );
 
-  res.json(stars);
+  res.json(result.rows);
 });
 
-router.post("/:universeId", auth, (req, res) => {
-  const member = db
-    .prepare("SELECT * FROM universe_members WHERE universe_id = ? AND user_id = ?")
-    .get(req.params.universeId, req.user.id);
+router.post("/:universeId", auth, async (req, res) => {
+  const member = await pool.query(
+    "SELECT * FROM universe_members WHERE universe_id = $1 AND user_id = $2",
+    [req.params.universeId, req.user.id]
+  );
 
-  if (!member) {
+  if (member.rows.length === 0) {
     return res.status(403).json({ error: "Not a member of this universe" });
   }
 
@@ -38,12 +41,11 @@ router.post("/:universeId", auth, (req, res) => {
     return res.status(400).json({ error: "Type and title required" });
   }
 
-  const result = db
-    .prepare(
-      `INSERT INTO stars (universe_id, creator_id, type, title, message, completion, difficulty, time_spent, size, color, x, y, assets)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(
+  const result = await pool.query(
+    `INSERT INTO stars (universe_id, creator_id, type, title, message, completion, difficulty, time_spent, size, color, x, y, assets)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+     RETURNING *`,
+    [
       req.params.universeId,
       req.user.id,
       type,
@@ -56,10 +58,11 @@ router.post("/:universeId", auth, (req, res) => {
       color || "#ffd700",
       x ?? Math.random(),
       y ?? Math.random(),
-      JSON.stringify(assets || [])
-    );
+      JSON.stringify(assets || []),
+    ]
+  );
 
-  const star = db.prepare("SELECT * FROM stars WHERE id = ?").get(result.lastInsertRowid);
+  const star = result.rows[0];
 
   if (req.app.locals.broadcast) {
     req.app.locals.broadcast(req.params.universeId, {
@@ -71,20 +74,22 @@ router.post("/:universeId", auth, (req, res) => {
   res.json(star);
 });
 
-router.put("/:universeId/:starId", auth, (req, res) => {
-  const member = db
-    .prepare("SELECT * FROM universe_members WHERE universe_id = ? AND user_id = ?")
-    .get(req.params.universeId, req.user.id);
+router.put("/:universeId/:starId", auth, async (req, res) => {
+  const member = await pool.query(
+    "SELECT * FROM universe_members WHERE universe_id = $1 AND user_id = $2",
+    [req.params.universeId, req.user.id]
+  );
 
-  if (!member) {
+  if (member.rows.length === 0) {
     return res.status(403).json({ error: "Not a member of this universe" });
   }
 
-  const existing = db
-    .prepare("SELECT * FROM stars WHERE id = ? AND universe_id = ?")
-    .get(req.params.starId, req.params.universeId);
+  const existing = await pool.query(
+    "SELECT * FROM stars WHERE id = $1 AND universe_id = $2",
+    [req.params.starId, req.params.universeId]
+  );
 
-  if (!existing) {
+  if (existing.rows.length === 0) {
     return res.status(404).json({ error: "Star not found" });
   }
 
@@ -93,37 +98,39 @@ router.put("/:universeId/:starId", auth, (req, res) => {
     timeSpent, size, color, x, y, assets,
   } = req.body;
 
-  db.prepare(
+  const result = await pool.query(
     `UPDATE stars SET
-      type = COALESCE(?, type),
-      title = COALESCE(?, title),
-      message = COALESCE(?, message),
-      completion = COALESCE(?, completion),
-      difficulty = COALESCE(?, difficulty),
-      time_spent = COALESCE(?, time_spent),
-      size = COALESCE(?, size),
-      color = COALESCE(?, color),
-      x = COALESCE(?, x),
-      y = COALESCE(?, y),
-      assets = COALESCE(?, assets)
-    WHERE id = ? AND universe_id = ?`
-  ).run(
-    type ?? null,
-    title ?? null,
-    message ?? null,
-    completion ?? null,
-    difficulty ?? null,
-    timeSpent ?? null,
-    size ?? null,
-    color ?? null,
-    x ?? null,
-    y ?? null,
-    assets ? JSON.stringify(assets) : null,
-    req.params.starId,
-    req.params.universeId
+      type = COALESCE($1, type),
+      title = COALESCE($2, title),
+      message = COALESCE($3, message),
+      completion = COALESCE($4, completion),
+      difficulty = COALESCE($5, difficulty),
+      time_spent = COALESCE($6, time_spent),
+      size = COALESCE($7, size),
+      color = COALESCE($8, color),
+      x = COALESCE($9, x),
+      y = COALESCE($10, y),
+      assets = COALESCE($11, assets)
+    WHERE id = $12 AND universe_id = $13
+    RETURNING *`,
+    [
+      type ?? null,
+      title ?? null,
+      message ?? null,
+      completion ?? null,
+      difficulty ?? null,
+      timeSpent ?? null,
+      size ?? null,
+      color ?? null,
+      x ?? null,
+      y ?? null,
+      assets ? JSON.stringify(assets) : null,
+      req.params.starId,
+      req.params.universeId,
+    ]
   );
 
-  const star = db.prepare("SELECT * FROM stars WHERE id = ?").get(req.params.starId);
+  const star = result.rows[0];
 
   if (req.app.locals.broadcast) {
     req.app.locals.broadcast(req.params.universeId, {
@@ -135,24 +142,26 @@ router.put("/:universeId/:starId", auth, (req, res) => {
   res.json(star);
 });
 
-router.delete("/:universeId/:starId", auth, (req, res) => {
-  const member = db
-    .prepare("SELECT * FROM universe_members WHERE universe_id = ? AND user_id = ?")
-    .get(req.params.universeId, req.user.id);
+router.delete("/:universeId/:starId", auth, async (req, res) => {
+  const member = await pool.query(
+    "SELECT * FROM universe_members WHERE universe_id = $1 AND user_id = $2",
+    [req.params.universeId, req.user.id]
+  );
 
-  if (!member) {
+  if (member.rows.length === 0) {
     return res.status(403).json({ error: "Not a member of this universe" });
   }
 
-  const star = db
-    .prepare("SELECT * FROM stars WHERE id = ? AND universe_id = ?")
-    .get(req.params.starId, req.params.universeId);
+  const existing = await pool.query(
+    "SELECT * FROM stars WHERE id = $1 AND universe_id = $2",
+    [req.params.starId, req.params.universeId]
+  );
 
-  if (!star) {
+  if (existing.rows.length === 0) {
     return res.status(404).json({ error: "Star not found" });
   }
 
-  db.prepare("DELETE FROM stars WHERE id = ?").run(req.params.starId);
+  await pool.query("DELETE FROM stars WHERE id = $1", [req.params.starId]);
 
   if (req.app.locals.broadcast) {
     req.app.locals.broadcast(req.params.universeId, {

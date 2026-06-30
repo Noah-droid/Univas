@@ -1,6 +1,6 @@
 const { Router } = require("express");
 const crypto = require("crypto");
-const db = require("../db");
+const { pool } = require("../db");
 const auth = require("../middleware/auth");
 
 const router = Router();
@@ -9,101 +9,108 @@ function generateCode() {
   return crypto.randomBytes(4).toString("hex");
 }
 
-router.get("/", auth, (req, res) => {
-  const universes = db
-    .prepare(
-      `SELECT u.* FROM universes u
-       JOIN universe_members um ON u.id = um.universe_id
-       WHERE um.user_id = ?`
-    )
-    .all(req.user.id);
-
-  res.json(universes);
+router.get("/", auth, async (req, res) => {
+  const result = await pool.query(
+    `SELECT u.* FROM universes u
+     JOIN universe_members um ON u.id = um.universe_id
+     WHERE um.user_id = $1`,
+    [req.user.id]
+  );
+  res.json(result.rows);
 });
 
-router.post("/", auth, (req, res) => {
+router.post("/", auth, async (req, res) => {
   const { name } = req.body;
   if (!name) {
     return res.status(400).json({ error: "Universe name required" });
   }
 
   let invite_code = generateCode();
-  while (db.prepare("SELECT id FROM universes WHERE invite_code = ?").get(invite_code)) {
+  let exists = await pool.query("SELECT id FROM universes WHERE invite_code = $1", [invite_code]);
+  while (exists.rows.length > 0) {
     invite_code = generateCode();
+    exists = await pool.query("SELECT id FROM universes WHERE invite_code = $1", [invite_code]);
   }
 
-  const result = db
-    .prepare("INSERT INTO universes (name, invite_code) VALUES (?, ?)")
-    .run(name, invite_code);
-
-  db.prepare("INSERT INTO universe_members (universe_id, user_id, role) VALUES (?, ?, 'owner')").run(
-    result.lastInsertRowid,
-    req.user.id
+  const result = await pool.query(
+    "INSERT INTO universes (name, invite_code) VALUES ($1, $2) RETURNING *",
+    [name, invite_code]
   );
 
-  db.prepare("INSERT INTO rooms (universe_id) VALUES (?)").run(result.lastInsertRowid);
+  const universe = result.rows[0];
 
-  const universe = db.prepare("SELECT * FROM universes WHERE id = ?").get(result.lastInsertRowid);
+  await pool.query(
+    "INSERT INTO universe_members (universe_id, user_id, role) VALUES ($1, $2, 'owner')",
+    [universe.id, req.user.id]
+  );
+
+  await pool.query("INSERT INTO rooms (universe_id) VALUES ($1)", [universe.id]);
+
   res.json(universe);
 });
 
-router.post("/join/:code", auth, (req, res) => {
-  const universe = db.prepare("SELECT * FROM universes WHERE invite_code = ?").get(req.params.code);
+router.post("/join/:code", auth, async (req, res) => {
+  const result = await pool.query("SELECT * FROM universes WHERE invite_code = $1", [req.params.code]);
+  const universe = result.rows[0];
+
   if (!universe) {
     return res.status(404).json({ error: "Invalid invite code" });
   }
 
-  const memberCount = db
-    .prepare("SELECT COUNT(*) as count FROM universe_members WHERE universe_id = ?")
-    .get(universe.id).count;
+  const memberCount = await pool.query(
+    "SELECT COUNT(*)::int as count FROM universe_members WHERE universe_id = $1",
+    [universe.id]
+  );
 
-  if (memberCount >= 2) {
+  if (memberCount.rows[0].count >= 2) {
     return res.status(400).json({ error: "This universe is already full" });
   }
 
-  const existing = db
-    .prepare("SELECT * FROM universe_members WHERE universe_id = ? AND user_id = ?")
-    .get(universe.id, req.user.id);
-
-  if (existing) {
-    return res.json(universe);
-  }
-
-  db.prepare("INSERT INTO universe_members (universe_id, user_id, role) VALUES (?, ?, 'partner')").run(
-    universe.id,
-    req.user.id
+  const existing = await pool.query(
+    "SELECT * FROM universe_members WHERE universe_id = $1 AND user_id = $2",
+    [universe.id, req.user.id]
   );
+
+  if (existing.rows.length === 0) {
+    await pool.query(
+      "INSERT INTO universe_members (universe_id, user_id, role) VALUES ($1, $2, 'partner')",
+      [universe.id, req.user.id]
+    );
+  }
 
   res.json(universe);
 });
 
-router.get("/:id", auth, (req, res) => {
-  const member = db
-    .prepare("SELECT * FROM universe_members WHERE universe_id = ? AND user_id = ?")
-    .get(req.params.id, req.user.id);
+router.get("/:id", auth, async (req, res) => {
+  const member = await pool.query(
+    "SELECT * FROM universe_members WHERE universe_id = $1 AND user_id = $2",
+    [req.params.id, req.user.id]
+  );
 
-  if (!member) {
+  if (member.rows.length === 0) {
     return res.status(403).json({ error: "Not a member of this universe" });
   }
 
-  const universe = db.prepare("SELECT * FROM universes WHERE id = ?").get(req.params.id);
-  if (!universe) {
+  const uniResult = await pool.query("SELECT * FROM universes WHERE id = $1", [req.params.id]);
+  if (uniResult.rows.length === 0) {
     return res.status(404).json({ error: "Universe not found" });
   }
 
-  const members = db
-    .prepare(
-      `SELECT u.id, u.username, um.role FROM users u
-       JOIN universe_members um ON u.id = um.user_id
-       WHERE um.universe_id = ?`
-    )
-    .all(req.params.id);
+  const universe = uniResult.rows[0];
 
-  const starCount = db
-    .prepare("SELECT COUNT(*) as count FROM stars WHERE universe_id = ?")
-    .get(req.params.id).count;
+  const members = await pool.query(
+    `SELECT u.id, u.username, um.role FROM users u
+     JOIN universe_members um ON u.id = um.user_id
+     WHERE um.universe_id = $1`,
+    [req.params.id]
+  );
 
-  res.json({ ...universe, members, starCount });
+  const starCount = await pool.query(
+    "SELECT COUNT(*)::int as count FROM stars WHERE universe_id = $1",
+    [req.params.id]
+  );
+
+  res.json({ ...universe, members: members.rows, starCount: starCount.rows[0].count });
 });
 
 module.exports = router;
