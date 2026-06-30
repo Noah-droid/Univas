@@ -2,6 +2,21 @@
   min-height: 100vh;
   background: #000008;
   overflow-y: auto;
+  position: relative;
+}
+
+.landing-stars {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.landing-star-dot {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  animation: starTwinkle ease-in-out infinite alternate;
 }
 
 .landing-nav {
@@ -48,14 +63,28 @@
   text-align: center;
   padding: 80px 24px;
   position: relative;
+  z-index: 1;
 }
 
 .hero-glow {
   position: absolute;
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, rgba(123, 104, 238, 0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(123, 104, 238, 0.1) 0%, transparent 70%);
   pointer-events: none;
+  animation: glowDrift 8s ease-in-out infinite alternate;
+}
+
+.hero-glow--alt {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(255, 107, 107, 0.07) 0%, transparent 70%);
+  animation-delay: -4s;
+  animation-duration: 10s;
+}
+
+.hero-title-wrapper {
+  min-height: 90px;
 }
 
 .hero-title {
@@ -63,15 +92,37 @@
   font-weight: 700;
   color: #fff;
   line-height: 1.15;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   max-width: 700px;
 }
 
-.hero-star {
+.hero-star-word {
+  position: relative;
+  display: inline-block;
   background: linear-gradient(135deg, #ffd700, #ff6b6b, #7b68ee);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.typewriter {
+  display: inline;
+}
+
+.typewriter-cursor {
+  display: inline-block;
+  color: #7b68ee;
+  animation: blink 0.8s step-end infinite;
+  font-weight: 100;
+  margin-left: 2px;
+}
+
+.sparkle {
+  position: absolute;
+  color: #ffd700;
+  font-size: 14px;
+  animation: sparkleFloat 2s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .hero-sub {
@@ -80,6 +131,10 @@
   max-width: 500px;
   line-height: 1.6;
   margin-bottom: 36px;
+}
+
+.hero-sub--reveal {
+  animation: revealUp 0.8s ease-out forwards;
 }
 
 .hero-cta {
@@ -92,11 +147,23 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-cta--reveal {
+  animation: revealUp 0.8s ease-out 0.2s both;
 }
 
 .hero-cta:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 30px rgba(123, 104, 238, 0.2);
+}
+
+.cta-sparkle {
+  margin-right: 8px;
+  display: inline-block;
+  animation: sparkleSpin 3s linear infinite;
 }
 
 .features {
@@ -106,6 +173,8 @@
   max-width: 900px;
   margin: 0 auto;
   padding: 80px 40px;
+  position: relative;
+  z-index: 1;
 }
 
 .feature {
@@ -114,6 +183,10 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
+}
+
+.feature--reveal {
+  animation: featureReveal 0.6s ease-out both;
 }
 
 .feature-icon {
@@ -138,6 +211,7 @@
   text-align: center;
   padding: 100px 40px;
   position: relative;
+  z-index: 1;
 }
 
 .constellation-visual {
@@ -162,6 +236,8 @@
 .constellation-lines line {
   stroke: rgba(255, 255, 255, 0.08);
   stroke-width: 1;
+  stroke-dasharray: 4 4;
+  animation: dashMove 20s linear infinite;
 }
 
 .constellation-section h2 {
@@ -183,6 +259,15 @@
   text-align: center;
   padding: 40px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  z-index: 1;
+}
+
+.footer-star {
+  color: rgba(123, 104, 238, 0.4);
+  font-size: 20px;
+  margin-bottom: 8px;
+  animation: sparkleSpin 4s linear infinite;
 }
 
 .landing-footer p {
@@ -190,9 +275,66 @@
   font-size: 13px;
 }
 
+@keyframes starTwinkle {
+  0% { opacity: 0.2; }
+  100% { opacity: 0.8; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes sparkleFloat {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-6px) scale(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes sparkleSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes featureReveal {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes glowDrift {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-3%, -2%); }
+}
+
 @keyframes float {
   0% { transform: translateY(0px); opacity: 0.6; }
   100% { transform: translateY(-12px); opacity: 1; }
+}
+
+@keyframes dashMove {
+  to { stroke-dashoffset: -100; }
 }
 
 @media (max-width: 768px) {
