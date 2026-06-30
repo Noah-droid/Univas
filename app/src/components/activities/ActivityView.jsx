@@ -31,7 +31,7 @@ export default function ActivityView({ universeId, onComplete, onExit }) {
   if (creating) {
     return (
       <div className="activity-screen" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 16 }}>Creating your star...</div>
+        <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 16 }}>Creating your star...</div>
       </div>
     );
   }

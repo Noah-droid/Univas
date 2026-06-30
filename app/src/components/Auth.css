@@ -62,7 +62,7 @@
 
 .auth-brand p {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .auth-card {
@@ -89,7 +89,7 @@
   background: none;
   border: none;
   border-radius: 8px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -116,7 +116,7 @@
 .input-group label {
   font-size: 12px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.65);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -137,7 +137,7 @@
 }
 
 .input-group input::placeholder {
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .auth-error {
@@ -174,7 +174,7 @@
 .auth-spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.35);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
@@ -183,7 +183,7 @@
 .auth-footer-text {
   text-align: center;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.6);
   margin-top: 20px;
 }
 
@@ -211,4 +211,270 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.picker-container {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 520px;
+  padding: 0 24px;
+}
+
+.picker-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.picker-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.picker-header p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.picker-loading {
+  text-align: center;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+}
+
+.picker-section {
+  width: 100%;
+  margin-bottom: 32px;
+}
+
+.picker-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.picker-universe-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.picker-universe-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(123, 104, 238, 0.3);
+  transform: translateY(-1px);
+}
+
+.picker-universe-icon {
+  font-size: 18px;
+  color: rgba(123, 104, 238, 0.8);
+}
+
+.picker-universe-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.picker-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.picker-action-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, rgba(123, 104, 238, 0.3), rgba(123, 104, 238, 0.15));
+  border: 1px solid rgba(123, 104, 238, 0.3);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.picker-action-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(123, 104, 238, 0.4), rgba(123, 104, 238, 0.2));
+}
+
+.picker-action-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.picker-action-icon {
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.picker-action-secondary {
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.picker-action-secondary:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.picker-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.picker-form-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.picker-form-actions .picker-action-primary {
+  flex: 1;
+}
+
+.picker-cancel {
+  padding: 14px 20px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.picker-cancel:hover {
+  color: #fff;
+}
+
+.picker-logout {
+  margin-top: 40px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.picker-logout:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 0 16px;
+  }
+
+  .auth-brand {
+    margin-bottom: 24px;
+  }
+
+  .auth-brand h1 {
+    font-size: 24px;
+  }
+
+  .auth-brand p {
+    font-size: 13px;
+  }
+
+  .auth-card {
+    padding: 20px;
+  }
+
+  .picker-container {
+    padding: 0 16px;
+  }
+
+  .picker-header {
+    margin-bottom: 28px;
+  }
+
+  .picker-header h1 {
+    font-size: 24px;
+  }
+
+  .picker-header p {
+    font-size: 13px;
+  }
+
+  .picker-section {
+    margin-bottom: 24px;
+  }
+
+  .picker-section-label {
+    font-size: 10px;
+    margin-bottom: 12px;
+  }
+
+  .picker-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .picker-universe-card {
+    padding: 14px 16px;
+    border-radius: 12px;
+  }
+
+  .picker-universe-icon {
+    font-size: 16px;
+  }
+
+  .picker-universe-name {
+    font-size: 14px;
+  }
+
+  .picker-actions {
+    gap: 8px;
+  }
+
+  .picker-action-primary,
+  .picker-action-secondary {
+    padding: 13px 16px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+
+  .picker-logout {
+    margin-top: 28px;
+  }
 }

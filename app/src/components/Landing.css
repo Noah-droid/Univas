@@ -1,5 +1,6 @@
 .landing {
   min-height: 100vh;
+  min-height: 100dvh;
   background: #000008;
   overflow-y: auto;
   position: relative;
@@ -56,6 +57,7 @@
 
 .hero {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -202,7 +204,7 @@
 }
 
 .feature p {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -248,7 +250,7 @@
 }
 
 .constellation-section p {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 16px;
   max-width: 450px;
   margin: 0 auto;
@@ -271,7 +273,7 @@
 }
 
 .landing-footer p {
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.45);
   font-size: 13px;
 }
 
@@ -344,5 +346,45 @@
   }
   .landing-nav {
     padding: 16px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    padding: 60px 16px;
+  }
+
+  .hero-sub {
+    font-size: 15px;
+  }
+
+  .hero-cta {
+    padding: 14px 28px;
+    font-size: 14px;
+  }
+
+  .features {
+    padding: 40px 16px;
+    gap: 12px;
+  }
+
+  .feature {
+    padding: 24px 16px;
+  }
+
+  .feature h3 {
+    font-size: 16px;
+  }
+
+  .constellation-section {
+    padding: 60px 20px;
+  }
+
+  .constellation-section h2 {
+    font-size: 22px;
+  }
+
+  .constellation-section p {
+    font-size: 14px;
   }
 }

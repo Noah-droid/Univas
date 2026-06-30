@@ -185,55 +185,50 @@ function UniversePicker({ universes, loading, onSelect, onCreate, onLogout }) {
           />
         ))}
       </div>
-      <div className="auth-container" style={{ gap: 24 }}>
-        <div className="auth-brand">
+      <div className="picker-container">
+        <div className="picker-header">
           <div className="auth-brand-icon">✦</div>
           <h1>Univas</h1>
           <p>choose your universe</p>
         </div>
 
-        <div className="auth-card">
-          {loading ? (
-            <div style={{ textAlign: "center", padding: 20, color: "rgba(255,255,255,0.3)", fontSize: 14 }}>
-              Loading your universes...
-            </div>
-          ) : (
-            <>
-              {universes.length > 0 && (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, textAlign: "center" }}>
-                    Your Universes
-                  </div>
+        {loading ? (
+          <div className="picker-loading">Loading your universes...</div>
+        ) : (
+          <>
+            {universes.length > 0 && (
+              <div className="picker-section">
+                <div className="picker-section-label">Your Universes</div>
+                <div className="picker-grid">
                   {universes.map((u) => (
                     <button
                       key={u.id}
-                      className="auth-submit"
-                      style={{ marginBottom: 8, background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.1)" }}
+                      className="picker-universe-card"
                       onClick={() => onSelect(u)}
                     >
-                      ✦ {u.name}
+                      <span className="picker-universe-icon">✦</span>
+                      <span className="picker-universe-name">{u.name}</span>
                     </button>
                   ))}
                 </div>
-              )}
+              </div>
+            )}
 
+            <div className="picker-actions">
               {!showCreate && !showInvite && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <button className="auth-submit" onClick={() => setShowCreate(true)}>
-                    + Create New Universe
+                <>
+                  <button className="picker-action-primary" onClick={() => setShowCreate(true)}>
+                    <span className="picker-action-icon">+</span>
+                    Create New Universe
                   </button>
-                  <button
-                    className="auth-submit"
-                    style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.08)" }}
-                    onClick={() => setShowInvite(true)}
-                  >
+                  <button className="picker-action-secondary" onClick={() => setShowInvite(true)}>
                     Join with Invite Code
                   </button>
-                </div>
+                </>
               )}
 
               {showCreate && (
-                <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <form onSubmit={handleCreate} className="picker-form">
                   <div className="input-group">
                     <label>Universe Name</label>
                     <input
@@ -243,22 +238,19 @@ function UniversePicker({ universes, loading, onSelect, onCreate, onLogout }) {
                       autoFocus
                     />
                   </div>
-                  <button type="submit" className="auth-submit" disabled={!name.trim() || creating}>
-                    {creating ? "Creating..." : "Create"}
-                  </button>
-                  <button
-                    type="button"
-                    className="auth-submit"
-                    style={{ background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: 13 }}
-                    onClick={() => setShowCreate(false)}
-                  >
-                    Cancel
-                  </button>
+                  <div className="picker-form-actions">
+                    <button type="submit" className="picker-action-primary" disabled={!name.trim() || creating}>
+                      {creating ? "Creating..." : "Create"}
+                    </button>
+                    <button type="button" className="picker-cancel" onClick={() => setShowCreate(false)}>
+                      Cancel
+                    </button>
+                  </div>
                 </form>
               )}
 
               {showInvite && (
-                <form onSubmit={handleJoin} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <form onSubmit={handleJoin} className="picker-form">
                   <div className="input-group">
                     <label>Invite Code</label>
                     <input
@@ -268,33 +260,21 @@ function UniversePicker({ universes, loading, onSelect, onCreate, onLogout }) {
                       autoFocus
                     />
                   </div>
-                  <button type="submit" className="auth-submit" disabled={!joinInput.trim()}>
-                    Join Universe
-                  </button>
-                  <button
-                    type="button"
-                    className="auth-submit"
-                    style={{ background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: 13 }}
-                    onClick={() => setShowInvite(false)}
-                  >
-                    Cancel
-                  </button>
+                  <div className="picker-form-actions">
+                    <button type="submit" className="picker-action-primary" disabled={!joinInput.trim()}>
+                      Join Universe
+                    </button>
+                    <button type="button" className="picker-cancel" onClick={() => setShowInvite(false)}>
+                      Cancel
+                    </button>
+                  </div>
                 </form>
               )}
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
 
-        <button
-          style={{
-            background: "none",
-            border: "none",
-            color: "rgba(255,255,255,0.25)",
-            fontSize: 12,
-            cursor: "pointer",
-          }}
-          onClick={onLogout}
-        >
+        <button className="picker-logout" onClick={onLogout}>
           sign out
         </button>
       </div>

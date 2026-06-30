@@ -45,8 +45,10 @@ export default function ActivityHub({ onSelect, onExit }) {
             onClick={() => onSelect(a.id)}
           >
             <span className="activity-card__icon">{a.icon}</span>
-            <span className="activity-card__name">{a.name}</span>
-            <span className="activity-card__desc">{a.desc}</span>
+            <div className="activity-card__info">
+              <span className="activity-card__name">{a.name}</span>
+              <span className="activity-card__desc">{a.desc}</span>
+            </div>
           </button>
         ))}
       </div>

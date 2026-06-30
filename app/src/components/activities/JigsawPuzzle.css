@@ -10,7 +10,7 @@
 }
 
 .setup-desc {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 14px;
   margin-bottom: 24px;
 }
@@ -25,7 +25,7 @@
   border: 2px dashed rgba(255, 255, 255, 0.15);
   border-radius: 12px;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.55);
   font-size: 14px;
   margin-bottom: 20px;
   overflow: hidden;
@@ -161,4 +161,53 @@
 .puzzle-piece.dragging {
   cursor: grabbing;
   filter: brightness(1.15) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+}
+
+@media (max-width: 480px) {
+  .puzzle-setup {
+    padding: 0 16px;
+    max-width: 100%;
+  }
+
+  .puzzle-setup h2 {
+    font-size: 20px;
+  }
+
+  .upload-zone {
+    height: 140px;
+  }
+
+  .difficulty-picker {
+    flex-wrap: wrap;
+  }
+
+  .diff-btn {
+    min-width: calc(50% - 4px);
+    flex: unset;
+  }
+
+  .puzzle-toolbar {
+    padding: 8px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .puzzle-stats {
+    gap: 10px;
+    font-size: 12px;
+  }
+
+  .puzzle-board {
+    width: min(90vw, 90vh, 500px);
+    height: min(90vw, 90vh, 500px);
+    margin: 0 auto;
+  }
+
+  .puzzle-complete-banner {
+    top: auto;
+    bottom: 20px;
+    font-size: 13px;
+    padding: 8px 16px;
+  }
 }
