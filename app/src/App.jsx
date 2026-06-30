@@ -12,27 +12,31 @@ function AppContent() {
   const [activeUniverse, setActiveUniverse] = useState(null);
   const [view, setView] = useState("landing");
   const [showActivity, setShowActivity] = useState(false);
-  const [inviteCode, setInviteCode] = useState(null);
+  const [pendingJoin, setPendingJoin] = useState(null);
 
   useEffect(() => {
     const path = window.location.pathname;
     const joinMatch = path.match(/^\/join\/(.+)$/);
     if (joinMatch) {
-      setInviteCode(joinMatch[1]);
-      setView("auth-join");
+      const code = joinMatch[1];
+      if (code && code !== "undefined") {
+        setPendingJoin(code);
+        if (!user) {
+          setView("auth-join");
+        }
+      } else {
+        window.history.replaceState({}, "", "/");
+      }
     }
   }, []);
 
   useEffect(() => {
-    if (user && view !== "universe" && view !== "activity") {
-      api.getUniverses().then((u) => {
-        setUniverses(u);
-        if (inviteCode) {
-          handleJoinByCode(inviteCode);
-        }
-      }).catch(console.error);
+    if (user && pendingJoin) {
+      handleJoinByCode(pendingJoin);
+    } else if (user && view === "landing") {
+      setView("picker");
     }
-  }, [user, view]);
+  }, [user, pendingJoin]);
 
   const handleJoinByCode = async (code) => {
     try {
@@ -43,31 +47,29 @@ function AppContent() {
       });
       setActiveUniverse(universe);
       setView("universe");
-      setInviteCode(null);
+      setPendingJoin(null);
       window.history.replaceState({}, "", "/");
     } catch (err) {
-      console.error(err);
-      setInviteCode(null);
+      console.error("Join failed:", err);
+      setPendingJoin(null);
+      window.history.replaceState({}, "", "/");
+      setView("picker");
     }
   };
 
   if (loading) return null;
 
   if (view === "landing" && !user) {
-    return (
-      <Landing
-        onGetStarted={() => setView("auth")}
-      />
-    );
+    return <Landing onGetStarted={() => setView("auth")} />;
   }
 
   if (view === "auth" || view === "auth-join" || !user) {
     return (
       <Auth
-        initialMode="register"
+        initialMode={view === "auth-join" ? "register" : "login"}
         onDone={() => {
-          if (inviteCode) {
-            handleJoinByCode(inviteCode);
+          if (pendingJoin) {
+            handleJoinByCode(pendingJoin);
           } else {
             setView("picker");
           }
@@ -105,6 +107,7 @@ function AppContent() {
       <ActivityView
         universeId={activeUniverse.id}
         onComplete={() => setShowActivity(false)}
+        onExit={() => setShowActivity(false)}
       />
     );
   }

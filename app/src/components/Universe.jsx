@@ -255,7 +255,7 @@ export default function Universe({ universeId, universeName, onOpenActivity, onL
 
       <div className="hud-zoom">{Math.round(zoom * 100)}%</div>
 
-      {showInvite && universeData && (
+      {showInvite && universeData?.invite_code && (
         <div className="invite-overlay" onClick={() => setShowInvite(false)}>
           <div className="invite-card" onClick={(e) => e.stopPropagation()}>
             <h3>Invite your partner</h3>
